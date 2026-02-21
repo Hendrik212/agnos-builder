@@ -42,15 +42,35 @@ if git submodule status --cached agnos-kernel-sdm845/ | grep "^-"; then
   git submodule update --init --depth 1 agnos-kernel-sdm845
 fi
 
-# Apply BT device tree patch (enables UART6 for WCN3990 Bluetooth)
-echo "Applying Bluetooth device tree patch..."
-if [ -d "$DIR/patches" ]; then
-  for patch in $DIR/patches/*.patch; do
-    if [ -f "$patch" ]; then
-      echo "Applying: $(basename $patch)"
-      patch -d agnos-kernel-sdm845 -p1 < "$patch" || echo "Patch may already be applied"
-    fi
-  done
+# Enable WCN3990 Bluetooth UART in device tree
+# This adds a bluetooth child node under qupv3_se6_4uart which tells
+# the hci_qca driver to create an HCI interface
+echo "Patching device tree for WCN3990 Bluetooth..."
+DTS_FILE="agnos-kernel-sdm845/arch/arm64/boot/dts/qcom/comma_common.dtsi"
+if ! grep -q "qupv3_se6_4uart" "$DTS_FILE" 2>/dev/null; then
+  cat >> "$DTS_FILE" << 'BTPATCH'
+
+/* Bluetooth UART (SE6 4-wire UART with flow control) - ABRP BLE bridge */
+&qupv3_se6_4uart {
+  status = "ok";
+
+  bluetooth {
+    compatible = "qcom,wcn3990-bt";
+
+    vddio-supply = <&pm8998_s3>;
+    vddxo-supply = <&pm8998_s5>;
+    vddrf-supply = <&pm8998_l7>;
+    vddch0-supply = <&pm8998_l17>;
+    vddch1-supply = <&pm8998_l25>;
+
+    max-speed = <3200000>;
+    firmware-name = "qca/crbtfw21.tlv";
+  };
+};
+BTPATCH
+  echo "Bluetooth UART node added to device tree"
+else
+  echo "Bluetooth UART node already present"
 fi
 
 $DIR/tools/extract_tools.sh
