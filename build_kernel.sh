@@ -42,6 +42,17 @@ if git submodule status --cached agnos-kernel-sdm845/ | grep "^-"; then
   git submodule update --init --depth 1 agnos-kernel-sdm845
 fi
 
+# Apply BT device tree patch (enables UART6 for WCN3990 Bluetooth)
+echo "Applying Bluetooth device tree patch..."
+if [ -d "$DIR/patches" ]; then
+  for patch in $DIR/patches/*.patch; do
+    if [ -f "$patch" ]; then
+      echo "Applying: $(basename $patch)"
+      patch -d agnos-kernel-sdm845 -p1 < "$patch" || echo "Patch may already be applied"
+    fi
+  done
+fi
+
 $DIR/tools/extract_tools.sh
 
 build_kernel() {
@@ -84,6 +95,8 @@ build_kernel() {
     -e CONFIG_BT_BREDR \
     -e CONFIG_BT_LE \
     -e CONFIG_BT_HCIUART \
+    -e CONFIG_BT_HCIUART_QCA \
+    -e CONFIG_BT_QCA \
     -e CONFIG_MSM_BT_POWER \
     -e CONFIG_BTFM_SLIM \
     -e CONFIG_BTFM_SLIM_WCN3990
