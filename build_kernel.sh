@@ -56,13 +56,8 @@ if ! grep -q "qupv3_se6_4uart" "$DTS_FILE" 2>/dev/null; then
 
   bluetooth {
     compatible = "qcom,wcn3990-bt";
-
-    vddio-supply = <&pm8998_s3>;
-    vddxo-supply = <&pm8998_s5>;
-    vddrf-supply = <&pm8998_l7>;
-    vddch0-supply = <&pm8998_l17>;
-    vddch1-supply = <&pm8998_l25>;
-
+    /* omit regulator supplies - probe without them to avoid boot panic
+       if pm8998 phandles aren't resolvable in this DT context */
     max-speed = <3200000>;
     firmware-name = "qca/crbtfw21.tlv";
   };
