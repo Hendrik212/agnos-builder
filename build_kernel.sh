@@ -109,6 +109,8 @@ build_kernel() {
   make $DEFCONFIG O=out
 
   # Enable Bluetooth (WCN3990 BLE support for ABRP OBD bridge)
+  # Only enable the HCI UART stack - avoid MSM_BT_POWER and BTFM_SLIM which
+  # probe hardware on init and can cause panics if DT nodes are incomplete
   echo "-- Patching BT config --"
   ./scripts/config --file out/.config \
     -e CONFIG_BT \
@@ -117,9 +119,9 @@ build_kernel() {
     -e CONFIG_BT_HCIUART \
     -e CONFIG_BT_HCIUART_QCA \
     -e CONFIG_BT_QCA \
-    -e CONFIG_MSM_BT_POWER \
-    -e CONFIG_BTFM_SLIM \
-    -e CONFIG_BTFM_SLIM_WCN3990
+    -d CONFIG_MSM_BT_POWER \
+    -d CONFIG_BTFM_SLIM \
+    -d CONFIG_BTFM_SLIM_WCN3990
   make olddefconfig O=out
 
   echo "-- Second make: $(nproc --all) cores --"
