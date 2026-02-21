@@ -39,7 +39,7 @@ docker container rm -f $CONTAINER_ID" EXIT
 # Clone kernel if not done already
 if git submodule status --cached agnos-kernel-sdm845/ | grep "^-"; then
   echo "Cloning agnos-kernel-sdm845"
-  git submodule update --init agnos-kernel-sdm845
+  git submodule update --init --depth 1 agnos-kernel-sdm845
 fi
 
 $DIR/tools/extract_tools.sh
@@ -76,6 +76,19 @@ build_kernel() {
   # Load defconfig and build kernel
   echo "-- First make --"
   make $DEFCONFIG O=out
+
+  # Enable Bluetooth (WCN3990 BLE support for ABRP OBD bridge)
+  echo "-- Patching BT config --"
+  ./scripts/config --file out/.config \
+    -e CONFIG_BT \
+    -e CONFIG_BT_BREDR \
+    -e CONFIG_BT_LE \
+    -e CONFIG_BT_HCIUART \
+    -e CONFIG_MSM_BT_POWER \
+    -e CONFIG_BTFM_SLIM \
+    -e CONFIG_BTFM_SLIM_WCN3990
+  make olddefconfig O=out
+
   echo "-- Second make: $(nproc --all) cores --"
   make -j$(nproc --all) O=out  # Image.gz-dtb
 
