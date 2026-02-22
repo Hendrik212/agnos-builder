@@ -113,14 +113,13 @@ path = pathlib.Path(sys.argv[1])
 src = path.read_text()
 
 guard = """#ifndef CONFIG_BTFM_SLIM
-static inline int btfm_slim_hw_init(void *data)
-{
-\treturn -EOPNOTSUPP;
-}
+#ifndef btfm_slim_hw_init
+#define btfm_slim_hw_init(_btfmslim) (-EOPNOTSUPP)
+#endif
 #endif
 """
 
-if "static inline int btfm_slim_hw_init(void *data)" not in src:
+if "#define btfm_slim_hw_init(_btfmslim) (-EOPNOTSUPP)" not in src:
   marker = '#include "btfm_slim.h"\n'
   if marker in src:
     src = src.replace(marker, marker + guard + "\n", 1)
