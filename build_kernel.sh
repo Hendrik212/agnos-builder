@@ -73,6 +73,23 @@ new, count = pat.subn("\n", src)
 if count:
   path.write_text(new)
   print(f"Removed qcom,wcn3990-bt DT blocks: {count}")
+
+# Ensure vendor bt_wcn3990 power node is enabled for msm_bt_power sequencing.
+src2 = path.read_text()
+node_pat = re.compile(
+  r"(bluetooth\s*:\s*bt_wcn3990\s*\{)"
+  r"(?P<body>(?:(?!\n[ \t]*\};).|\n)*)"
+  r"(\n[ \t]*\};)",
+  re.M,
+)
+m = node_pat.search(src2)
+if m:
+  body = m.group("body")
+  if "status" not in body:
+    insert = body.rstrip() + "\n    status = \"okay\";\n"
+    src2 = src2[:m.start("body")] + insert + src2[m.end("body"):]
+    path.write_text(src2)
+    print("Enabled bt_wcn3990 DT power node")
 PY
 
     if ! grep -q "&qupv3_se6_4uart" "$DTS_FILE"; then
@@ -126,7 +143,7 @@ DTPATCH
     -e CONFIG_BT_HCIUART \
     -e CONFIG_BT_HCIUART_QCA \
     -e CONFIG_BT_QCA \
-    -d CONFIG_MSM_BT_POWER \
+    -e CONFIG_MSM_BT_POWER \
     -d CONFIG_BTFM_SLIM \
     -d CONFIG_BTFM_SLIM_WCN3990
   make olddefconfig O=out
