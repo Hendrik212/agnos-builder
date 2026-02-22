@@ -102,6 +102,33 @@ DTPATCH
     fi
   fi
 
+  # Allow CONFIG_MSM_BT_POWER to link without CONFIG_BTFM_SLIM.
+  BT_PWR_FILE="drivers/bluetooth/bluetooth-power.c"
+  if [ -f "$BT_PWR_FILE" ]; then
+    python3 - "$BT_PWR_FILE" << 'PY'
+import pathlib
+import sys
+
+path = pathlib.Path(sys.argv[1])
+src = path.read_text()
+
+guard = """#ifndef CONFIG_BTFM_SLIM
+static inline int btfm_slim_hw_init(void *data)
+{
+\treturn -EOPNOTSUPP;
+}
+#endif
+"""
+
+if "static inline int btfm_slim_hw_init(void *data)" not in src:
+  marker = '#include "btfm_slim.h"\n'
+  if marker in src:
+    src = src.replace(marker, marker + guard + "\n", 1)
+    path.write_text(src)
+    print("Patched bluetooth-power.c with btfm_slim stub")
+PY
+  fi
+
   # Build parameters
   ARCH=$(uname -m)
   if [ "$ARCH" != "arm64" ] && [ "$ARCH" != "aarch64" ]; then
