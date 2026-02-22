@@ -48,6 +48,43 @@ $DIR/tools/extract_tools.sh
 build_kernel() {
   cd agnos-kernel-sdm845
 
+  # Ensure BT UART exists as ttyHS0 without enabling in-kernel qca BT probing.
+  # We want userspace hciattach control (no qcom,wcn3990-bt child node).
+  DTS_FILE="arch/arm64/boot/dts/qcom/comma_common.dtsi"
+  if [ -f "$DTS_FILE" ]; then
+    python3 - "$DTS_FILE" << 'PY'
+import pathlib
+import re
+import sys
+
+path = pathlib.Path(sys.argv[1])
+src = path.read_text()
+
+# Remove any bluetooth child block that declares qcom,wcn3990-bt.
+pat = re.compile(
+  r"\n[ \t]*bluetooth\s*\{"
+  r"(?:(?!\n[ \t]*\};).|\n)*?"
+  r'compatible\s*=\s*"qcom,wcn3990-bt";'
+  r"(?:(?!\n[ \t]*\};).|\n)*?"
+  r"\n[ \t]*\};\n",
+  re.M,
+)
+new, count = pat.subn("\n", src)
+if count:
+  path.write_text(new)
+  print(f"Removed qcom,wcn3990-bt DT blocks: {count}")
+PY
+
+    if ! grep -q "&qupv3_se6_4uart" "$DTS_FILE"; then
+      cat >> "$DTS_FILE" << 'DTPATCH'
+
+&qupv3_se6_4uart {
+  status = "ok";
+};
+DTPATCH
+    fi
+  fi
+
   # Build parameters
   ARCH=$(uname -m)
   if [ "$ARCH" != "arm64" ] && [ "$ARCH" != "aarch64" ]; then
