@@ -86,6 +86,14 @@ DTPATCH
     fi
   fi
 
+  # Relax legacy btqca firmware size limits so WCN3990 ROME 0x02140201
+  # rampatch/nvm blobs (~300KB) are accepted.
+  BTQCA_FILE="drivers/bluetooth/btqca.c"
+  if [ -f "$BTQCA_FILE" ]; then
+    sed -i 's/^#define MAX_PATCH_FILE_SIZE.*/#define MAX_PATCH_FILE_SIZE (512*1024)/' "$BTQCA_FILE"
+    sed -i 's/^#define MAX_NVM_FILE_SIZE.*/#define MAX_NVM_FILE_SIZE   (512*1024)/' "$BTQCA_FILE"
+  fi
+
   # Build parameters
   ARCH=$(uname -m)
   if [ "$ARCH" != "arm64" ] && [ "$ARCH" != "aarch64" ]; then
