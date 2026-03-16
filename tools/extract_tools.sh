@@ -16,7 +16,7 @@ cd $DIR
 git lfs ls-files | awk '{print $2}' | grep "-" &>/dev/null && {
   echo "Pulling git lfs objects..."
   cd $ROOT
-  git lfs install
+  git lfs install --force
   git lfs pull
   cd $DIR
 }
